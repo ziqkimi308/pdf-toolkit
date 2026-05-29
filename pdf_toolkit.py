@@ -250,7 +250,7 @@ def handle_extract_text(args):
 
     Returns:
         int: Exit code (0 for success, 1 for error).
-		
+
 	"""
 
 	# validate pdf
@@ -288,7 +288,7 @@ def handle_extract_text(args):
 			continue
 		
 		page = reader.pages[page_num - 1] # page = index + 1
-		text = page.extract_text()
+		text = page.extract_text() # Pypdf extract function
 
 		if text:
 			all_text.append(f"--- Page {page_num} ---\n{text}\n")
@@ -311,4 +311,78 @@ def handle_extract_text(args):
 		print(f"Error writing output file: {e}", file=sys.stderr)
 		return 1
 	
+	return 0
+
+def handle_rotate(args):
+	"""
+    Rotate pages in a PDF file by a specified angle.
+
+    Behavior:
+    - Validates the input PDF file.
+    - Parses the --pages argument to determine which pages to rotate.
+    - Supports ranges (e.g., '1-3'), open-ended ranges ('-4', '6-'), 
+      and individual pages ('2,4,9').
+    - If no --pages argument is provided, rotates ALL pages.
+    - Rotates selected pages by the specified angle (must be multiple of 90).
+    - Keeps non-selected pages unchanged.
+    - Writes the rotated PDF to an output file.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - file (str): Path to the input PDF.
+            - angle (int): Rotation angle in degrees (90, 180, 270, or -90, -180, -270).
+            - pages (str | None): Optional page selection string. 
+              Defaults to all pages if omitted.
+            - output (str | None): Optional output filename. 
+              Defaults to '<stem>_rotated_<angle>.pdf'.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error).
+
+    Example:
+        # Rotate pages 1-3 by 90 degrees
+        python pdf_tool.py rotate document.pdf --angle 90 --pages 1-3
+
+        # Rotate only page 5 by 180 degrees
+        python pdf_tool.py rotate document.pdf --angle 180 --pages 5
+
+        # Rotate all pages by -90 degrees
+        python pdf_tool.py rotate document.pdf --angle -90\
+		
+    """
+
+	# validate pdf
+	if not validate_pdf(args.file):
+		return 1
+	
+	reader = PdfReader(args.file)
+	writer = PdfWriter()
+
+	total_pages = len(reader.pages)
+	pages_to_rotate = []
+	# If user provide --pages argument
+	pages = args.pages
+	if pages:
+		for part in pages.split(","):
+			part = part.strip()
+			if '-' in part:
+				start, end = part.split("-")
+				start = int(start) if start else 1
+				end = int(end) if end else total_pages
+				pages_to_rotate.extend(range(start, end+1))
+			else:
+				pages_to_rotate.append(int(part))
+	else:
+		pages_to_rotate = list(range(1, total_pages + 1))
+
+	for i, page in enumerate(reader.pages, start=1):
+		if i in pages_to_rotate:
+			page.rotate(args.angle)
+		writer.add_page(page) # add_page is pypdf function
+	
+	output = args.output or get_output_path(args.file, f"rotated_{args.angle}")
+	with open(output, 'wb') as file:
+		writer.write(file)
+	print(f"✓ Rotated {len(pages_to_rotate)} page(s) by {args.angle}° -> '{output}'")
+
 	return 0
