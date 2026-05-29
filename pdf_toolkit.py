@@ -77,6 +77,22 @@ def get_output_path(input_path: str, suffix: str, output: str | None = None) -> 
 # merge
 def handle_merge(args):
 	"""
+	Merge multiple PDF files into a single output file.
+
+    Behavior:
+    - Requires at least two input PDF files.
+    - Validates each file before processing.
+    - Iterates through all pages of each input file, adding them to a PdfWriter.
+    - Finalizes the merge by writing all collected pages into one output PDF.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - files (list[str]): Paths to input PDF files.
+            - output (str | None): Optional output filename. Defaults to 'merged.pdf'.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error).
+
 	"""
 
 	# min 2 pdf
@@ -115,6 +131,31 @@ def handle_merge(args):
 
 # split
 def handle_split(args):
+	"""
+	Split a PDF into separate files based on selected pages.
+
+    Behavior:
+    - Validates the input PDF file.
+    - Parses the --pages argument to determine which pages to extract.
+    - Supports ranges (e.g., '1-3'), open-ended ranges ('-4', '6-'), and individual pages ('2,4,9').
+    - Operates in two modes:
+        * 'single': Creates one output file per extracted page.
+        * else: Creates a single output file containing all extracted pages.
+    - Writes extracted pages to the specified output directory.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - file (str): Path to the input PDF.
+            - pages (str | None): Page selection string.
+            - mode (str): Extraction mode ('single' or combined).
+            - output_dir (str | None): Directory for output files.
+            - output (str | None): Optional output filename for combined mode.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error).
+
+	"""
+
 	if not validate_pdf(args.file):
 		return 1
 	
@@ -187,4 +228,87 @@ def handle_split(args):
 			extracted_count = len(writer.pages)
 	
 	print(f"\n✓ Successfully extracted {extracted_count} pages.")
+	return 0
+
+# handle extract text
+def handle_extract_text(args):
+	"""
+	Extract text content from selected pages of a PDF.
+
+    Behavior:
+    - Validates the input PDF file.
+    - Parses the --pages argument to determine which pages to process.
+    - Extracts text from each selected page using PdfReader.
+    - Handles cases where no text is extractable.
+    - Writes extracted text to a .txt file, with page headers for clarity.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - file (str): Path to the input PDF.
+            - pages (str | None): Page selection string. Defaults to all pages if omitted.
+            - output (str | None): Optional output filename. Defaults to '<stem>_text.txt'.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error).
+		
+	"""
+
+	# validate pdf
+	if not validate_pdf(args.file):
+		return 1
+
+	reader = PdfReader(args.file)
+	total_pages = len(reader.pages)
+
+	# Example optional --pages argument
+	# --pages 1-2,5-8,10 or -4 or 6- or 2,4,9
+	pages = args.pages
+	if pages:
+		page_nums = []
+		# split turns string into list even for single number like -4
+		for part in pages.split(','):
+			part = part.strip()
+			if '-' in part:
+				start, end = part.split("-")
+				start = int(start) if start else 1
+				end = int(end) if end else total_pages
+				page_nums.extend(range(start, end+1))
+			else:
+				page_nums.append(int(part))
+	else:
+		page_nums = list(range(1, total_pages + 1))
+
+	# actual extract
+	all_text = []
+	for page_num in page_nums:
+
+		# safety guard 
+		if page_num < 1 or page_num > total_pages:
+			print(f"Warning: Page {page_num} out of range, skipping.")
+			continue
+		
+		page = reader.pages[page_num - 1] # page = index + 1
+		text = page.extract_text()
+
+		if text:
+			all_text.append(f"--- Page {page_num} ---\n{text}\n")
+		else:
+			all_text.append(f"--- Page {page_num} ---\n[No extractable text]\n")
+	
+	# if all_text empty, means no extraction occurs
+	if not all_text:
+		print("No text extracted.", file=sys.stderr)
+		return 1
+	
+	output = args.output or f"{Path(args.file).stem}_text.txt"
+
+	try:
+		with open(output, 'w', encoding='utf-8') as file:
+			file.write('\n'.join(all_text))
+		print(f"✓ Text extracted from {len(page_nums)} page(s) and saved to '{output}'")
+
+	except Exception as e:
+		print(f"Error writing output file: {e}", file=sys.stderr)
+		return 1
+	
 	return 0
