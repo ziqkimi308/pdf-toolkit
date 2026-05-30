@@ -389,7 +389,28 @@ def handle_rotate(args):
 
 def handle_watermark(args):
 	"""
-	"""
+    Apply a watermark to all pages of a PDF.
+
+    Behavior:
+    - Validates the input PDF file.
+    - Loads the watermark from a separate PDF file (only the first page is used).
+    - Merges the watermark page onto each page of the input PDF.
+    - Writes the watermarked PDF to an output file.
+
+    Args:
+        args: Parsed command-line arguments containing:
+            - file (str): Path to the input PDF file.
+            - watermark (str): Path to the watermark PDF file (first page applied).
+            - output (str | None): Optional output filename. Defaults to '<stem>_watermarked.pdf'.
+
+    Returns:
+        int: Exit code (0 for success, 1 for error).
+
+    Example:
+        # Apply watermark from draft.pdf to document.pdf
+        pdf_toolkit watermark document.pdf -w draft.pdf -o watermarked.pdf
+		
+    """
 
 	# validate pdf
 	if not validate_pdf(args.file):
