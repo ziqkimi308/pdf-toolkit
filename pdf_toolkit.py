@@ -502,5 +502,8 @@ Examples:
 	watermark_parser.add_argument('-o', '--output', help='Output file')
 	watermark_parser.set_defaults(func=handle_watermark)
 
+	args = parser.parse_args()
+	sys.exit(args.func(args))
+
 if __name__ == '__main__':
     main()
