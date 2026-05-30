@@ -119,6 +119,7 @@ Ignoring wrong pointing object 8 0 (offset 0)
 python pdf_toolkit.py watermark document.pdf -w watermark.pdf -o watermarked.pdf
 ```
 
+Sample Output:
 ```bash
 $ python pdf_toolkit.py watermark samples/pdf-3.pdf -w samples/watermark.pdf -o samples/watermarked.pdf
 Ignoring wrong pointing object 8 0 (offset 0)
