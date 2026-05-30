@@ -413,3 +413,73 @@ def handle_watermark(args):
 	
 	return 0
 
+def main():
+	parser = argparse.ArgumentParser(
+		description="PDF Toolkit - Merge, Split, Extract Text, Rotate, Watermark",
+		formatter_class=argparse.RawDescriptionHelpFormatter,
+		epilog="""
+Examples:
+  # Merge PDFs
+  pdf_toolkit merge file1.pdf file2.pdf file3.pdf -o merged.pdf
+
+  # Split into individual pages
+  pdf_toolkit split document.pdf --mode single -d output_dir/
+
+  # Extract pages 1-3 and 5 to a new PDF
+  pdf_toolkit split document.pdf --pages "1-3,5" -o extracted.pdf
+
+  # Extract text from all pages
+  pdf_toolkit extract-text document.pdf -o output.txt
+
+  # Rotate pages 2-4 by 90 degrees
+  pdf_toolkit rotate document.pdf --pages "2-4" --angle 90 -o rotated.pdf
+
+  # Apply watermark
+  pdf_toolkit watermark document.pdf -w draft.pdf -o watermarked.pdf
+        """
+	)
+
+	subparsers = parser.add_subparsers(dest='command', required=True, help='Sub-commands')
+
+	# Merge
+	merge_parser = subparsers.add_parser('merge', help='Merge multiple PDFs')
+	# + means at least 1 or more
+	merge_parser.add_argument('files', nargs='+', help='PDF files to merge')
+	merge_parser.add_argument('-o', '--output', help='Output file (default: merged.pdf)')
+	merge_parser.set_defaults(func=handle_merge)
+
+	# Split
+	split_parser = subparsers.add_parser('split', help='Split a PDF into pages or ranges')
+	split_parser.add_argument('file', help='Input PDF file')
+	split_parser.add_argument('--pages', help='Page ranges to extract (e.g., "1-3,5,7-9"). If omitted, all pages.')
+	split_parser.add_argument('--mode', choices=['single', 'combined'], default='combined', help='single: one file per page; combined: one file with selected pages')
+	split_parser.add_argument('-o', '--output', help='Output file (for combined mode)')
+	split_parser.add_argument('-d', '--output-dir', help='Output directory (for single mode)')
+	split_parser.set_defaults(func=handle_split)
+
+	# extract text
+	text_parser = subparsers.add_parser('extract-text', help='Extract text from PDF')
+	text_parser.add_argument('file', help='Input PDF file')
+	text_parser.add_argument('--pages', help='Page ranges to extract text from (default: all)')
+	text_parser.add_argument('-o', '--output', help='Output text file')
+	text_parser.set_defaults(func=handle_extract_text)
+
+    # rotate
+	rotate_parser = subparsers.add_parser('rotate', help='Rotate pages')
+	rotate_parser.add_argument('file', help='Input PDF file')
+	rotate_parser.add_argument('--pages', help='Page ranges to rotate (default: all)')
+	# angle is made optional argument but required for better readability, clarity, and flexibility
+	rotate_parser.add_argument('--angle', type=int, required=True, choices=[90, 180, 270], help='Rotation angle (clockwise)')
+	rotate_parser.add_argument('-o', '--output', help='Output file')
+	rotate_parser.set_defaults(func=handle_rotate)
+
+    # watermark
+	watermark_parser = subparsers.add_parser('watermark', help='Apply watermark')
+	watermark_parser.add_argument('file', help='Input PDF file')
+	# watermark is made optional argument but required for same reason as angle
+	watermark_parser.add_argument('-w', '--watermark', required=True, help='Watermark PDF file (first page used)')
+	watermark_parser.add_argument('-o', '--output', help='Output file')
+	watermark_parser.set_defaults(func=handle_watermark)
+
+if __name__ == '__main__':
+    main()
