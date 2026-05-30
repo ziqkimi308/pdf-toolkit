@@ -386,3 +386,30 @@ def handle_rotate(args):
 	print(f"✓ Rotated {len(pages_to_rotate)} page(s) by {args.angle}° -> '{output}'")
 
 	return 0
+
+def handle_watermark(args):
+	"""
+	"""
+
+	# validate pdf
+	if not validate_pdf(args.file):
+		return 1
+	
+	reader = PdfReader(args.file)
+	writer = PdfWriter()
+
+	# limitation of pypdf can only deals with pdf file. So even watermark need to be a pdf file.
+	watermark_reader = PdfReader(args.watermark)
+	watermark_page = watermark_reader.pages[0]
+
+	for page in reader.pages:
+		page.merge_page(watermark_page)
+		writer.add_page(page)
+	
+	output = args.output or get_output_path(args.file, "watermarked")
+	with open(output, 'wb') as file:
+		writer.write(file)
+	print(f"✓ Watermark applied to {len(reader.pages)} page(s) -> '{output}'")
+	
+	return 0
+
